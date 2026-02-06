@@ -2,48 +2,153 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <title>Lärar-Verktyg: Spara Visualisering</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spara som HTML</title>
     <style>
-        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; height: 100vh; margin: 0; }
-        #editor-side { padding: 20px; display: flex; flex-direction: column; background: #f4f4f9; border-right: 1px solid #ccc; }
-        #preview-side { background: white; }
-        textarea { flex-grow: 1; margin-top: 10px; font-family: monospace; padding: 10px; }
-        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
-        iframe { width: 100%; height: 100%; border: none; }
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --text: #1e293b;
+        }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            color: var(--text);
+            background-color: var(--bg);
+        }
+        header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .main-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            flex-grow: 1;
+            overflow: hidden;
+        }
+        #sidebar {
+            padding: 1.5rem;
+            background: #fff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+        .info-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .info-card code {
+            background: white;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: 'fira-code', monospace;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            resize: vertical;
+        }
+        button {
+            cursor: pointer;
+            padding: 0.6rem 1rem;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        button:hover { opacity: 0.9; }
+        
+        #preview-container {
+            background: #eee;
+            display: flex;
+            flex-direction: column;
+        }
+        iframe {
+            flex-grow: 1;
+            background: white;
+            border: none;
+            margin: 20px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-<div id="editor-side">
-    <h2>Spara AI-Visualisering</h2>
-    <div class="controls">
-        <input type="text" id="filename" placeholder="Ämne (t.ex. Fotosyntes)">
-        <button onclick="saveFile()">Spara som HTML</button>
-        <button onclick="updatePreview()">Uppdatera Förhandsvisning</button>
+<header>
+    <h1 style="margin:0; font-size: 1.25rem;">Spara som HTML</h1>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="filename" placeholder="Namnge filen..." style="padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <button class="btn-primary" onclick="saveFile()">Ladda ner .html</button>
     </div>
-    <textarea id="code-input" placeholder="Klistra in kod från LLM här..."></textarea>
-</div>
+</header>
 
-<div id="preview-side">
-    <iframe id="preview-frame"></iframe>
+<div class="main-container">
+    <div id="sidebar">
+        <div class="info-card">
+            <strong>💡 Tips för bäst resultat:</strong><br>
+            Be din AI (ChatGPT/Claude) att: 
+            <em>"Skapa en helt <code>fristående HTML-fil</code> (Single-file) där CSS och JavaScript ingår i samma dokument."</em>
+        </div>
+
+        <div class="input-group">
+            <label for="code-input"><strong>Klistra in kod:</strong></label>
+            <textarea id="code-input" placeholder="<html>...</html>" oninput="updatePreview()"></textarea>
+        </div>
+        
+        <button class="btn-secondary" onclick="updatePreview()">Uppdatera förhandsvisning</button>
+    </div>
+
+    <div id="preview-container">
+        <div style="padding: 10px 20px; font-size: 0.8rem; color: #64748b;">FÖRHANDSVISNING:</div>
+        <iframe id="preview-frame"></iframe>
+    </div>
 </div>
 
 <script>
     function updatePreview() {
         const code = document.getElementById('code-input').value;
         const iframe = document.getElementById('preview-frame');
+        // Sanitizing the input can be complex, but srcdoc handles raw HTML well
         iframe.srcdoc = code;
     }
 
     function saveFile() {
         const code = document.getElementById('code-input').value;
-        const name = document.getElementById('filename').value || "lektion";
+        if (!code) { alert("Klistra in lite kod först!"); return; }
+        
+        let name = document.getElementById('filename').value || "pedagogiskt-verktyg";
+        if (!name.endsWith('.html')) name += ".html";
         
         const blob = new Blob([code], { type: 'text/html' });
         const link = document.createElement('a');
         
         link.href = URL.createObjectURL(blob);
-        link.download = `${name}.html`;
+        link.download = name;
         link.click();
         
         URL.revokeObjectURL(link.href);
