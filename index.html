@@ -1,75 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
-  <meta charset="UTF-8">
-  <title>LLM Viz Catcher</title>
-  <!-- Inline CSS for simple UI -->
-  <style>
-    body { font-family: sans-serif; margin: 20px; }
-    #pasteArea { width: 100%; height: 300px; border: 1px solid #ccc; }
-    button { margin: 10px 0; }
-  </style>
-  <!-- PWA manifest inline or link -->
-  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiTEtNIFZpeiBDYXRjaGVyIiwic2hvcnRfbmFtZSI6IlZpeiBDYXRjaGVyIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiaWNvbnMiOlt7InNyYyI6ImFzc2V0cy9pY29uLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmciLCJwdXJwb3NlIjoibWFzay1hYmxlIn1dfQ==">
+    <meta charset="UTF-8">
+    <title>Lärar-Verktyg: Spara Visualisering</title>
+    <style>
+        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; height: 100vh; margin: 0; }
+        #editor-side { padding: 20px; display: flex; flex-direction: column; background: #f4f4f9; border-right: 1px solid #ccc; }
+        #preview-side { background: white; }
+        textarea { flex-grow: 1; margin-top: 10px; font-family: monospace; padding: 10px; }
+        .controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
 </head>
 <body>
-  <h1>Paste LLM HTML Viz Here</h1>
-  <textarea id="pasteArea" placeholder="Paste raw HTML..."></textarea>
-  <button id="saveOpenBtn">Save & Open in New Tab</button>
-  
-  <!-- Inline JS -->
-  <script>
-    let currentHandle = null;
-    const pasteArea = document.getElementById('pasteArea');
-    
-    // Optional: Auto-clean paste (strip code fences)
-    pasteArea.addEventListener('paste', (e) => {
-      setTimeout(() => {
-        let text = pasteArea.value.trim();
-        if (text.startsWith('```html
-          text = text.slice(7, -3).trim();
-          pasteArea.value = text;
-        }
-      }, 0);
-    });
-    
-    async function saveAndOpen() {
-      let content = pasteArea.value;
-      if (!content) return alert('Paste something first!');
-      
-      // Save logic (picker or fallback)
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: 'llm-viz.html',
-          types: [{ description: 'HTML Files', accept: { 'text/html': ['.html'] } }],
-        });
-        currentHandle = handle;
-        const writable = await handle.createWritable();
-        await writable.write(content);
-        await writable.close();
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          // Fallback download
-          const blob = new Blob([content], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'llm-viz.html';
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        return; // If fallback, maybe skip open or use content
-      }
-      
-      // Open in new tab via blob (using content, or read if needed)
-      const blob = new Blob([content], { type: 'text/html' });
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      // No revoke immediately — let tab load first
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+
+<div id="editor-side">
+    <h2>Spara AI-Visualisering</h2>
+    <div class="controls">
+        <input type="text" id="filename" placeholder="Ämne (t.ex. Fotosyntes)">
+        <button onclick="saveFile()">Spara som HTML</button>
+        <button onclick="updatePreview()">Uppdatera Förhandsvisning</button>
+    </div>
+    <textarea id="code-input" placeholder="Klistra in kod från LLM här..."></textarea>
+</div>
+
+<div id="preview-side">
+    <iframe id="preview-frame"></iframe>
+</div>
+
+<script>
+    function updatePreview() {
+        const code = document.getElementById('code-input').value;
+        const iframe = document.getElementById('preview-frame');
+        iframe.srcdoc = code;
     }
-    
-    document.getElementById('saveOpenBtn').addEventListener('click', saveAndOpen);
-  </script>
+
+    function saveFile() {
+        const code = document.getElementById('code-input').value;
+        const name = document.getElementById('filename').value || "lektion";
+        
+        const blob = new Blob([code], { type: 'text/html' });
+        const link = document.createElement('a');
+        
+        link.href = URL.createObjectURL(blob);
+        link.download = `${name}.html`;
+        link.click();
+        
+        URL.revokeObjectURL(link.href);
+    }
+</script>
+
 </body>
 </html>
